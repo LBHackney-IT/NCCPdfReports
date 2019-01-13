@@ -10,13 +10,11 @@ namespace NCCPdfReports
         string contactId = "";
         string tenAgreementRef = "";
         string startdate = "";
-        string enddate = "";
         protected void Page_Load(object sender, System.EventArgs e)
         {
             contactId = Request.QueryString["contactid"];
             tenAgreementRef = Request.QueryString["tenagreementref"];
             startdate = Request.QueryString["startdate"];
-            enddate = Request.QueryString["enddate"];
             if (!IsPostBack)
             {
                 RegisterAsyncTask(new PageAsyncTask(GeneratePdfDocument));
@@ -25,10 +23,10 @@ namespace NCCPdfReports
 
         private async Task GeneratePdfDocument()
         {
-            if (!string.IsNullOrEmpty(contactId) || !string.IsNullOrEmpty(tenAgreementRef) || !string.IsNullOrEmpty(startdate) || !string.IsNullOrEmpty(enddate))
+            if (!string.IsNullOrEmpty(contactId) || !string.IsNullOrEmpty(tenAgreementRef) || !string.IsNullOrEmpty(startdate))
             {
                 BuildDoc bdoc = new BuildDoc();
-                Document document = bdoc.GeneratePdfDocument(contactId, tenAgreementRef, startdate, enddate);
+                Document document = bdoc.GeneratePdfDocument(contactId, tenAgreementRef, startdate);
                 if (document != null)
                     document.DrawToWeb();
             }

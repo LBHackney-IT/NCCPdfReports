@@ -15,6 +15,7 @@ namespace NCCPdfReports
     {
         string PdfLicenceKey = ConfigurationManager.AppSettings["PdfLicenceKey"];
         private string ContactDetailsAPIURL = ConfigurationManager.AppSettings["ContactDetailsAPIURL"];
+        private string SandboxContactDetailsAPIURL = ConfigurationManager.AppSettings["SandboxContactDetailsAPIURL"];
         private string TransactionDetailsAPIURL = ConfigurationManager.AppSettings["TransactionDetailsAPIURL"];
         private string TransactionStatementsAPIURl = ConfigurationManager.AppSettings["TransactionStatementsAPIURl"];
 
@@ -53,7 +54,7 @@ namespace NCCPdfReports
 
         }
 
-        public Document GeneratePdfDocument(string contactId, string tenAgreementRef, string sStartDate, string sEndDate)
+        public Document GeneratePdfDocument(string contactId, string tenAgreementRef, string sStartDate)
         {
             // Create a document and set it's properties
             Document.AddLicense(PdfLicenceKey);
@@ -63,19 +64,23 @@ namespace NCCPdfReports
             document.Author = "ceTe Software";
             document.Title = "NCC Customer Reports";
 
-            if (string.IsNullOrEmpty(tenAgreementRef) || string.IsNullOrEmpty(sStartDate) || string.IsNullOrEmpty(sEndDate))
+            if (string.IsNullOrEmpty(tenAgreementRef) || string.IsNullOrEmpty(sStartDate) )
                 return null;
 
             DateTime startDate = DateTime.Parse(sStartDate);
-            DateTime endDate = DateTime.Parse(sEndDate);
             var jsonciresponse = ExecuteAPI(ContactDetailsAPIURL, contactId);
+            if (jsonciresponse == null)
+            {
+                string SandboxContactDetailsAPIURL = ConfigurationManager.AppSettings["SandboxContactDetailsAPIURL"];
 
+                jsonciresponse = ExecuteAPI(SandboxContactDetailsAPIURL, contactId);
+            }
             var jsontransdetresponse = ExecuteAPI(TransactionDetailsAPIURL, tenAgreementRef);
             if (jsontransdetresponse != null && jsonciresponse != null)
             {
                 // Adds elements to the header template
-                document.Template = SetTemplate(tenAgreementRef, startDate.ToShortDateString(), endDate.ToShortDateString(), jsonciresponse, jsontransdetresponse);
-                string parameters = $@"{tenAgreementRef}&startdate={startDate}&enddate={endDate}";
+                document.Template = SetTemplate(tenAgreementRef, startDate.ToShortDateString(), jsonciresponse, jsontransdetresponse);
+                string parameters = $@"{tenAgreementRef}&startdate={startDate}";
                 var jsontranshistresponse = ExecuteAPIRetJArray(TransactionStatementsAPIURl, parameters);
                 if (jsontranshistresponse != null)
                 {
@@ -84,7 +89,7 @@ namespace NCCPdfReports
                     //if (transResponse.Count > 0)
                     {
                         // Builds the report
-                        BuildDocument(startDate, endDate, document, jsontranshistresponse);
+                        BuildDocument(startDate, document, jsontranshistresponse);
                     }
                 }
             }
@@ -95,13 +100,20 @@ namespace NCCPdfReports
 
         public JObject ExecuteAPI(string url, string parameters)
         {
-            using (var httpClient = new HttpClient())
+            JObject jresponse = null;
+            try
             {
-                var response = httpClient.GetStringAsync(new Uri(url + parameters)).Result;
-                var jresponse = JsonConvert.DeserializeObject<JObject>(response);
+                using (var httpClient = new HttpClient())
+                {
+                    var response = httpClient.GetStringAsync(new Uri(url + parameters)).Result;
+                    jresponse = JsonConvert.DeserializeObject<JObject>(response);
+                    return jresponse;
+                }
+            }
+            catch(Exception ex)
+            {
                 return jresponse;
             }
-
         }
 
         public JArray ExecuteAPIRetJArray(string url, string parameters)
@@ -115,7 +127,7 @@ namespace NCCPdfReports
 
         }
 
-        public Template SetTemplate(string tenAgreementRef, string startDate, string endDate, JObject jsonciresponse, JToken jsontransdetresponse)
+        public Template SetTemplate(string tenAgreementRef, string startDate, JObject jsonciresponse, JToken jsontransdetresponse)
         {
             // Adds elements to the header template
             template.Elements.Add(new Image(HttpContext.Current.Server.MapPath("/Images/Hackney_Logo_Green_small20.jpg"), 300, 0));
@@ -133,14 +145,16 @@ namespace NCCPdfReports
             template.Elements.Add(new Label(jsonciresponse["postCode"].ToString(), RightLabelStart, currentPos += BoldFontSize, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
             template.Elements.Add(new Label("Account", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize));
             template.Elements.Add(new Label(tenAgreementRef, RightLabelStart, currentPos, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
+            template.Elements.Add(new Label("Rent Acc No", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize));
+            template.Elements.Add(new Label(jsontransdetresponse["paymentReferenceNumber"].ToString(), RightLabelStart, currentPos, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
 
             currentPos += 20;//Adding some buffer space
             template.Elements.Add(new Label("Transactions since:", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth + 50, BoldFontSize, Font.Helvetica, BoldFontSize2));
             template.Elements.Add(new Label("Until:", 150, currentPos, LeftLabelWidth, BoldFontSize, Font.Helvetica, BoldFontSize2));
             template.Elements.Add(new Label(string.Format("As of {0} your balance is:", DateTime.Today.ToString("dd MMM yyyy")), 300, currentPos, RightLabelWidth, BoldFontSize, Font.Helvetica, BoldFontSize2));
             template.Elements.Add(new Label(startDate, LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
-            template.Elements.Add(new Label(endDate, 150, currentPos, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
-            CurrentBalance = jsontransdetresponse["currentBalance"].ToString();
+            template.Elements.Add(new Label(DateTime.Now.ToString("dd/MM/yyyy"), 150, currentPos, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
+            CurrentBalance = jsontransdetresponse["displayBalance"].ToString();
             RecordBalance = float.Parse(CurrentBalance);
             string DisplayRecordBalance = RecordBalance.ToString("c2"); 
             template.Elements.Add(new Label(DisplayRecordBalance, 300, currentPos, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
@@ -195,7 +209,7 @@ namespace NCCPdfReports
             CURRENT_Y += 18;
         }
 
-        public void BuildDocument(DateTime startDate, DateTime endDate, Document document, JArray transResponse)
+        public void BuildDocument(DateTime startDate, Document document, JArray transResponse)
         {
             bool hasRecords = false;
             // Builds the PDF document with data from the XML Data
@@ -203,7 +217,7 @@ namespace NCCPdfReports
             foreach (var response in transResponse)
             {
                 DateTime transDate = DateTime.Parse(response["date"].ToString());
-                if(transDate > startDate && transDate < endDate)
+                if(transDate > startDate)
                 {
                     //Add current node to the document
                     AddRecord(transDate, document, response);

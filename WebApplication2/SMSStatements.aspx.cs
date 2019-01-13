@@ -35,10 +35,10 @@ namespace NCCPdfReports
         }
         private async Task GeneratePdfDocument()
         {
-            if (!string.IsNullOrEmpty(contactId) || !string.IsNullOrEmpty(startdate) || !string.IsNullOrEmpty(enddate))
+            if (!string.IsNullOrEmpty(contactId) || !string.IsNullOrEmpty(startdate) )
             {
                 BuildDoc bdoc = new BuildDoc();
-                Document document = bdoc.GeneratePdfDocument(contactId, tenAgreementRef, startdate, enddate);
+                Document document = bdoc.GeneratePdfDocument(contactId, tenAgreementRef, startdate);
                 if (document != null)
                 {
                     byte[] docbytes = document.Draw();
