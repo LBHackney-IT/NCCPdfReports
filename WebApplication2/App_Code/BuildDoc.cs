@@ -175,7 +175,7 @@ namespace NCCPdfReports
             template.Elements.Add(new Label(string.Format("As of {0} your balance is:", DateTime.Today.ToString("dd MMM yyyy")), PAGE_MIDDLE, currentPos, RightLabelWidth, BoldFontSize, Font.Helvetica, BoldFontSize2));
 
             string strTransactionDateText = string.Format("Transactions: {0} to {1}", startDate, DateTime.Now.ToString("dd/MM/yyyy"));
-            template.Elements.Add(new Label(strTransactionDateText, LEFTMARGIN, currentPos += BoldFontSize2, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, NormalFontSize-1));
+            template.Elements.Add(new Label(strTransactionDateText, LEFTMARGIN, currentPos += BoldFontSize2, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, NormalFontSize));
             CurrentBalance = jsontransdetresponse["displayBalance"].ToString();
             string IsCreditOrArears = " is in credit";
             if (CurrentBalance.Contains("-"))
