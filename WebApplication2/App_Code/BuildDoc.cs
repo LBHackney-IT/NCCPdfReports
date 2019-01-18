@@ -40,14 +40,17 @@ namespace NCCPdfReports
         private static float POS_INTO = 250;
         private static float POS_OUTOF = 350;
         private static float POS_BALANCE = 450;
-        private static float TABLE_TOP = 200;
         private static float PAGE_MIDDLE = 300;
-        private float CURRENT_Y = TABLE_TOP + 30;
-        private float bodyTop = TABLE_TOP + 30;
+        private static float TABLE_TOP = 0;
+        private float CURRENT_Y = 0;
+        private float bodyTop = 0;
         int NormalFontSize = 14;
+        int NormalFontSize2 = 12;
+        int NormalFontSize3 = 10;
         int TitleFontSize = 30;
         int BoldFontSize = 14;
         int BoldFontSize2 = 12;
+        int BoldFontSize3 = 10;
         string CurrentBalance = "";
         float RecordBalance = 0;
         // Used to control the alternating background
@@ -76,7 +79,6 @@ namespace NCCPdfReports
             if (jsonciresponse == null)
             {
                 string SandboxContactDetailsAPIURL = ConfigurationManager.AppSettings["SandboxContactDetailsAPIURL"];
-
                 jsonciresponse = ExecuteAPI(SandboxContactDetailsAPIURL, contactId);
             }
             var jsonrentbreakiresponse = ExecuteAPIRetJArray(RentBreakdownAPIURl, $@"{tenAgreementRef}");
@@ -128,7 +130,6 @@ namespace NCCPdfReports
                 var jresponse = JsonConvert.DeserializeObject<JArray>(response);
                 return jresponse;
             }
-
         }
 
         public Template SetTemplate(string tenAgreementRef, string startDate, JObject jsonciresponse, JToken jsontransdetresponse, JArray jsonrentbreakiresponse)
@@ -136,68 +137,74 @@ namespace NCCPdfReports
             int currentPos = 0;
             int LeftLabelWidth = 100;
             int RightLabelWidth = 300;
-            int RightLabelStart = LeftLabelWidth + 20;
+            int RightLabelStart = LeftLabelWidth;
             // Adds elements to the header template
             template.Elements.Add(new Image(HttpContext.Current.Server.MapPath("/Images/Hackney_Logo_Green_small20.jpg"), 300, 0));
             template.Elements.Add(new Label("Rent transactions", LEFTMARGIN, currentPos, RightLabelWidth, TitleFontSize, Font.HelveticaBold, TitleFontSize));
-            template.Elements.Add(new Label("Name", LEFTMARGIN, currentPos += TitleFontSize+10, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize));
+            template.Elements.Add(new Label("Name", LEFTMARGIN, currentPos += TitleFontSize+10, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize3));
             string customername = string.Format("{0} {1} {2}", jsonciresponse["title"], jsonciresponse["firstName"], jsonciresponse["lastName"]);
-            template.Elements.Add(new Label(customername, RightLabelStart, currentPos, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
+            template.Elements.Add(new Label(customername, RightLabelStart, currentPos, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize3));
             string strBreakdownsDesc = "";
             string strBreakdownsValues = "";
+            int breakdowncount = 1;
             foreach (var rentBreakdown in jsonrentbreakiresponse)
             {
+                breakdowncount++;
                 float fcurrentval = float.Parse(rentBreakdown["value"].ToString());
                 strBreakdownsDesc += string.Format("{0}\n", rentBreakdown["description"].ToString().Trim());
-                strBreakdownsValues += string.Format("{0}\n", fcurrentval.ToString("c2"));  
+                strBreakdownsValues += string.Format("{0,10:C2}\n", fcurrentval);  
             }
-            //strBreakdownsDesc += "________________________\n";
-            //strBreakdownsValues += "_________\n";
             float frent = float.Parse(jsontransdetresponse["rent"].ToString());
             strBreakdownsDesc += "Total Rent";
-            strBreakdownsValues += string.Format("{0}\n", frent.ToString("c2"));
+            strBreakdownsValues += string.Format("{0,10:C2}\n", frent);
+            int RentBreakDownHeight = BoldFontSize * breakdowncount;
+            template.Elements.Add(new Label(strBreakdownsDesc, PAGE_MIDDLE, currentPos, RightLabelWidth+500, RentBreakDownHeight, Font.Helvetica, 9));
+            template.Elements.Add(new Label(strBreakdownsValues, PAGE_MIDDLE+100, currentPos, 50, RentBreakDownHeight, Font.HelveticaBold, 9, TextAlign.Right));
 
-            template.Elements.Add(new Label(strBreakdownsDesc, PAGE_MIDDLE, currentPos, RightLabelWidth+500, 600, Font.Helvetica, 9));
-            template.Elements.Add(new Label(strBreakdownsValues, PAGE_MIDDLE+100, currentPos, RightLabelWidth + 500, 600, Font.HelveticaBold, 9));
-
-            template.Elements.Add(new Label("Address", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize));
-            template.Elements.Add(new Label(jsonciresponse["addressLine1"].ToString(), RightLabelStart, currentPos, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
-            template.Elements.Add(new Label(jsonciresponse["addressLine2"].ToString(), RightLabelStart, currentPos += BoldFontSize, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
-            template.Elements.Add(new Label(jsonciresponse["addressLine3"].ToString(), RightLabelStart, currentPos += BoldFontSize, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
-            template.Elements.Add(new Label(jsonciresponse["postCode"].ToString(), RightLabelStart, currentPos += BoldFontSize, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
-            template.Elements.Add(new Label("Payment Ref", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize));
-            template.Elements.Add(new Label(jsontransdetresponse["paymentReferenceNumber"].ToString(), RightLabelStart, currentPos, LeftLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize));
+            template.Elements.Add(new Label("Address", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize3));
+            template.Elements.Add(new Label(jsonciresponse["addressLine1"].ToString(), RightLabelStart, currentPos, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize3));
+            if(!string.IsNullOrEmpty(jsonciresponse["addressLine2"].ToString()))
+                template.Elements.Add(new Label(jsonciresponse["addressLine2"].ToString(), RightLabelStart, currentPos += BoldFontSize3, RightLabelWidth, BoldFontSize3, Font.HelveticaBold, BoldFontSize3));
+            template.Elements.Add(new Label(jsonciresponse["addressLine3"].ToString(), RightLabelStart, currentPos += BoldFontSize3, RightLabelWidth, BoldFontSize3, Font.HelveticaBold, BoldFontSize3));
+            template.Elements.Add(new Label(jsonciresponse["postCode"].ToString(), RightLabelStart, currentPos += BoldFontSize3, RightLabelWidth, BoldFontSize3, Font.HelveticaBold, BoldFontSize3));
+            template.Elements.Add(new Label("Payment Ref", LEFTMARGIN, currentPos += BoldFontSize3, LeftLabelWidth, BoldFontSize3, Font.Helvetica, NormalFontSize3));
+            template.Elements.Add(new Label(jsontransdetresponse["paymentReferenceNumber"].ToString(), RightLabelStart, currentPos, LeftLabelWidth, BoldFontSize3, Font.HelveticaBold, BoldFontSize3));
             currentPos += 30;//Adding some buffer space
+            if(currentPos< RentBreakDownHeight)
+                currentPos = RentBreakDownHeight + 20;
+            template.Elements.Add(new Line(LEFTMARGIN, currentPos, PageWidth, currentPos));
 
-            template.Elements.Add(new Line(LEFTMARGIN, currentPos += BoldFontSize, PageWidth, currentPos));
-
-             currentPos += 5;//Adding some buffer space
+            currentPos += 5;//Adding some buffer space
             template.Elements.Add(new Label(string.Format("As of {0} your balance is:", DateTime.Today.ToString("dd MMM yyyy")), PAGE_MIDDLE, currentPos, RightLabelWidth, BoldFontSize, Font.Helvetica, BoldFontSize2));
 
             string strTransactionDateText = string.Format("Transactions: {0} to {1}", startDate, DateTime.Now.ToString("dd/MM/yyyy"));
-            template.Elements.Add(new Label(strTransactionDateText, LEFTMARGIN, currentPos += BoldFontSize2, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, NormalFontSize));
+            template.Elements.Add(new Label(strTransactionDateText, LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, NormalFontSize));
             CurrentBalance = jsontransdetresponse["displayBalance"].ToString();
-            string IsCreditOrArears = " is in credit";
+            string IsCreditOrArears = " in credit";
             if (CurrentBalance.Contains("-"))
             {
-                IsCreditOrArears = " is in arrears";
+                IsCreditOrArears = " in arrears";
             }
             RecordBalance = float.Parse(CurrentBalance);
             string DisplayRecordBalance = RecordBalance.ToString("c2") + IsCreditOrArears; 
             template.Elements.Add(new Label(DisplayRecordBalance, 300, currentPos, LeftLabelWidth+100, BoldFontSize, Font.HelveticaBold, BoldFontSize));
 
-            template.Elements.Add(new Label("You can pay online anytime by visiting ", LEFTMARGIN, currentPos += BoldFontSize, LeftLabelWidth+300, BoldFontSize, Font.Helvetica, BoldFontSize2));
+            template.Elements.Add(new Label("You can pay online anytime by visiting ", LEFTMARGIN, currentPos += BoldFontSize +5, LeftLabelWidth+300, BoldFontSize, Font.Helvetica, BoldFontSize2));
             string strlinktest = "www.hackney.gov.uk/rentaccount";
             Label lbl = new Label(strlinktest, 210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, Font.Helvetica, BoldFontSize2, RgbColor.Blue);
             lbl.Underline = true;
             template.Elements.Add(lbl);
             template.Elements.Add(new Link(210, currentPos, LeftLabelWidth + 100, BoldFontSize+10, new UrlAction(strlinktest)));
+            currentPos += BoldFontSize2 + 20;
+            TABLE_TOP = currentPos;
+            template.Elements.Add(new Label("Date", LEFTMARGIN, TABLE_TOP, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
+            template.Elements.Add(new Label("Type of transaction", POS_TRANSACTION, TABLE_TOP, 200, 11, Font.HelveticaBold, BoldFontSize2));
+            template.Elements.Add(new Label("Credits", POS_INTO, TABLE_TOP, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
+            template.Elements.Add(new Label("Charges", POS_OUTOF, TABLE_TOP, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
+            template.Elements.Add(new Label("Balance", POS_BALANCE, TABLE_TOP, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
 
-            template.Elements.Add(new Label("Date", LEFTMARGIN, TABLE_TOP + BoldFontSize2, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
-            template.Elements.Add(new Label("Type of transaction", POS_TRANSACTION, TABLE_TOP + BoldFontSize2, 200, 11, Font.HelveticaBold, BoldFontSize2));
-            template.Elements.Add(new Label("Credit", POS_INTO, TABLE_TOP + BoldFontSize2, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
-            template.Elements.Add(new Label("Charges", POS_OUTOF, TABLE_TOP + BoldFontSize2, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
-            template.Elements.Add(new Label("Balance", POS_BALANCE, TABLE_TOP + BoldFontSize2, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
+            CURRENT_Y = currentPos + BoldFontSize; 
+            bodyTop = CURRENT_Y;
             template.Elements.Add(new Line(LEFTMARGIN, CURRENT_Y, PageWidth, CURRENT_Y));
 
             return template;
@@ -222,9 +229,10 @@ namespace NCCPdfReports
             string moneyin = response["in"].ToString();
             string monyeout = response["out"].ToString();
             string balance = response["balance"].ToString();
+
             currentPage.Elements.Add(new Label(moneyin, POS_INTO, CURRENT_Y + 3, 100, BoldFontSize2, Font.Helvetica, BoldFontSize2));
             currentPage.Elements.Add(new Label(monyeout, POS_OUTOF, CURRENT_Y + 3, 100, BoldFontSize2, Font.Helvetica, BoldFontSize2));
-            currentPage.Elements.Add(new Label(balance, POS_BALANCE, CURRENT_Y + 3, 100, BoldFontSize2, Font.Helvetica, BoldFontSize2));
+            currentPage.Elements.Add(new Label(balance, POS_BALANCE, CURRENT_Y + 3, 50, BoldFontSize2, Font.Helvetica, BoldFontSize2, TextAlign.Right));
             template.Elements.Add(new Line(LEFTMARGIN, CURRENT_Y, PageWidth, CURRENT_Y, 1));
             // Toggles alternating background
             alternateBG = !alternateBG;
