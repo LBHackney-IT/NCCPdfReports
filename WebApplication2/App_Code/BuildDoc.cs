@@ -138,9 +138,10 @@ namespace NCCPdfReports
             int LeftLabelWidth = 100;
             int RightLabelWidth = 300;
             int RightLabelStart = LeftLabelWidth;
+            string tenureType = jsontransdetresponse["tenureType"].ToString();
             // Adds elements to the header template
             template.Elements.Add(new Image(HttpContext.Current.Server.MapPath("/Images/Hackney_Logo_Green_small20.jpg"), 300, 0));
-            template.Elements.Add(new Label("Rent transactions", LEFTMARGIN, currentPos, RightLabelWidth, TitleFontSize, Font.HelveticaBold, TitleFontSize));
+            template.Elements.Add(new Label("Transactions", LEFTMARGIN, currentPos, RightLabelWidth, TitleFontSize, Font.HelveticaBold, TitleFontSize));
             template.Elements.Add(new Label("Name", LEFTMARGIN, currentPos += TitleFontSize+10, LeftLabelWidth, BoldFontSize, Font.Helvetica, NormalFontSize3));
             string customername = string.Format("{0} {1} {2}", jsonciresponse["title"], jsonciresponse["firstName"], jsonciresponse["lastName"]);
             template.Elements.Add(new Label(customername, RightLabelStart, currentPos, RightLabelWidth, BoldFontSize, Font.HelveticaBold, BoldFontSize3));
@@ -154,8 +155,17 @@ namespace NCCPdfReports
                 strBreakdownsDesc += string.Format("{0}\n", rentBreakdown["description"].ToString().Trim());
                 strBreakdownsValues += string.Format("{0,10:C2}\n", fcurrentval);  
             }
+            strBreakdownsDesc += "__________________________\n";
+            strBreakdownsValues += "______\n";
             float frent = float.Parse(jsontransdetresponse["rent"].ToString());
-            strBreakdownsDesc += "Total Rent";
+            if (tenureType == "LEA")
+            {
+                strBreakdownsDesc += "Total Charge (per month)";
+            }
+            else
+            {
+                strBreakdownsDesc += "Total Charge (per week)";
+            }
             strBreakdownsValues += string.Format("{0,10:C2}\n", frent);
             int RentBreakDownHeight = BoldFontSize * breakdowncount;
             template.Elements.Add(new Label(strBreakdownsDesc, PAGE_MIDDLE, currentPos, RightLabelWidth+500, RentBreakDownHeight, Font.Helvetica, 9));
@@ -189,12 +199,15 @@ namespace NCCPdfReports
             string DisplayRecordBalance = RecordBalance.ToString("c2") + IsCreditOrArears; 
             template.Elements.Add(new Label(DisplayRecordBalance, 300, currentPos, LeftLabelWidth+100, BoldFontSize, Font.HelveticaBold, BoldFontSize));
 
-            template.Elements.Add(new Label("You can pay online anytime by visiting ", LEFTMARGIN, currentPos += BoldFontSize +5, LeftLabelWidth+300, BoldFontSize, Font.Helvetica, BoldFontSize2));
-            string strlinktest = "www.hackney.gov.uk/rentaccount";
-            Label lbl = new Label(strlinktest, 210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, Font.Helvetica, BoldFontSize2, RgbColor.Blue);
-            lbl.Underline = true;
-            template.Elements.Add(lbl);
-            template.Elements.Add(new Link(210, currentPos, LeftLabelWidth + 100, BoldFontSize+10, new UrlAction(strlinktest)));
+            if (tenureType != "LEA")
+            {
+                template.Elements.Add(new Label("You can pay online anytime by visiting ", LEFTMARGIN, currentPos += BoldFontSize + 5, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, BoldFontSize2));
+                string strlinktest = "www.hackney.gov.uk/rentaccount";
+                Label lbl = new Label(strlinktest, 210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, Font.Helvetica, BoldFontSize2, RgbColor.Blue);
+                lbl.Underline = true;
+                template.Elements.Add(lbl);
+                template.Elements.Add(new Link(210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, new UrlAction(strlinktest)));
+            }
             currentPos += BoldFontSize2 + 20;
             TABLE_TOP = currentPos;
             template.Elements.Add(new Label("Date", LEFTMARGIN, TABLE_TOP, 100, BoldFontSize2, Font.HelveticaBold, BoldFontSize2));
