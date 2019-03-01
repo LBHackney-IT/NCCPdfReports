@@ -201,12 +201,13 @@ namespace NCCPdfReports
 
             if (tenureType != "LEA")
             {
-                template.Elements.Add(new Label("You can pay online anytime by visiting ", LEFTMARGIN, currentPos += BoldFontSize + 5, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, BoldFontSize2));
-                string strlinktest = "www.hackney.gov.uk/rentaccount";
-                Label lbl = new Label(strlinktest, 210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, Font.Helvetica, BoldFontSize2, RgbColor.Blue);
-                lbl.Underline = true;
-                template.Elements.Add(lbl);
-                template.Elements.Add(new Link(210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, new UrlAction(strlinktest)));
+
+                template.Elements.Add(new Label("You can pay online anytime by visiting www.hackney.gov.uk/rentaccount" , LEFTMARGIN, currentPos += BoldFontSize + 5, LeftLabelWidth + 300, BoldFontSize, Font.Helvetica, BoldFontSize2));
+                //string strlinktest = "www.hackney.gov.uk/rentaccount";
+                //Label lbl = new Label(strlinktest, 210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, Font.Helvetica, BoldFontSize2, RgbColor.Blue);
+                //lbl.Underline = true;
+                //template.Elements.Add(lbl);
+                //template.Elements.Add(new Link(210, currentPos, LeftLabelWidth + 100, BoldFontSize + 10, new UrlAction(strlinktest)));
             }
             currentPos += BoldFontSize2 + 20;
             TABLE_TOP = currentPos;
